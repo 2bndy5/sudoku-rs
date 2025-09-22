@@ -1,0 +1,17 @@
+version: "0.2"
+words:
+  - 2bndy5
+  - bndy
+  - clippy
+  - Doherty
+  - fract
+  - hexdigit
+  - nextest
+  - rngs
+  - Tetris
+  - thiserror
+  - timeit
+ignorePaths:
+  - .gitignore
+  - .gitattributes
+  - .vscode/**

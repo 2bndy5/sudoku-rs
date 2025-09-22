@@ -1,0 +1,31 @@
+[package]
+name = "sudoku-gen"
+description = "A tool to generate/import, solve, and validate Sudoku puzzles."
+version = "0.1.0"
+repository.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+
+[[bin]]
+name = "sudoku-gen"
+path = "src/main.rs"
+required-features = ["bin"]
+
+[[bench]]
+name = "completed"
+harness = false
+
+[dependencies]
+anyhow = { version = "1.0.100", optional = true }
+clap = { version = "4.5.48", features = ["derive"], optional = true }
+rand = { version = "0.9.2", features = ["alloc"] }
+thiserror = "2.0.16"
+
+[features]
+clap = ["dep:clap"]
+anyhow = ["dep:anyhow"]
+bin = ["clap", "anyhow"]
+
+[dev-dependencies]
+criterion = { version = "0.7.0", features = ["html_reports"] }
