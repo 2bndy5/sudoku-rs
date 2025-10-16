@@ -1,12 +1,15 @@
-use crate::{Board, Cell, Coord};
+use crate::{
+    Board,
+    cell::{Cell, Coord},
+};
 
-pub struct Candidates {
+pub struct Candidate {
     cells: Vec<Coord>,
-    pub candidate: u8,
+    pub value: u8,
 }
 
 pub struct RegionNotes {
-    pub notes: Vec<Candidates>,
+    pub notes: Vec<Candidate>,
 }
 
 /// A returned type to differentiate between Row or Column locked candidates.
@@ -32,12 +35,12 @@ impl RegionNotes {
     }
 
     fn push_notes(&mut self, coord: Coord, candidate: u8) {
-        if let Some(noted_cells) = self.notes.iter_mut().find(|n| n.candidate == candidate) {
+        if let Some(noted_cells) = self.notes.iter_mut().find(|n| n.value == candidate) {
             noted_cells.cells.push(coord);
         } else {
-            self.notes.push(Candidates {
+            self.notes.push(Candidate {
                 cells: vec![coord],
-                candidate,
+                value: candidate,
             });
         }
     }
@@ -47,7 +50,7 @@ impl RegionNotes {
         for possible in &self.notes {
             if possible.cells.len() == 1 {
                 let coord = possible.cells[0];
-                singles.push((coord, possible.candidate));
+                singles.push((coord, possible.value));
             }
         }
         singles
@@ -56,7 +59,7 @@ impl RegionNotes {
     pub fn find_locked_candidates(&self) -> Vec<LockedCandidate> {
         let mut pairs = Vec::new();
         // If candidates are sequestered to the same row or column,
-        // then we have a pointed pair.
+        // then we have a pointed pair (AKA "locked candidate").
         for possible in &self.notes {
             let mut iter = possible.cells.iter();
             // safe to unwrap() the first element because
@@ -74,10 +77,10 @@ impl RegionNotes {
                 }
             }
             if let Some(r) = common_row {
-                pairs.push(LockedCandidate::Row(possible.candidate, r));
+                pairs.push(LockedCandidate::Row(possible.value, r));
             }
             if let Some(c) = common_col {
-                pairs.push(LockedCandidate::Column(possible.candidate, c));
+                pairs.push(LockedCandidate::Column(possible.value, c));
             }
         }
         // let the caller remove notes in other regions that are "pointed" by these pairs.

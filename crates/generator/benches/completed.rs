@@ -1,8 +1,8 @@
 use criterion::{Criterion, criterion_group, criterion_main};
-use sudoku_gen::{Board, BoardKind, BoardSize};
+use sudoku_gen::{Board, BoardSize, RegionKind};
 
 fn gen_solve(size: BoardSize) {
-    let mut board = Board::new(&size, crate::BoardKind::Regular);
+    let mut board = Board::new(&size, crate::RegionKind::Regular);
     assert!(board.generate());
 }
 

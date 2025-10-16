@@ -1,4 +1,6 @@
 use std::fmt::Display;
+mod finder;
+pub use finder::{Cardinal, CoordWalker};
 
 pub(crate) enum ValidatedCell {
     Dupe,
@@ -85,10 +87,10 @@ impl Cell {
 /// Both `row` and `col` use a zero-based index.
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, Hash, PartialOrd, Ord)]
 pub struct Coord {
-    /// The row of the coordinate.
+    /// The row of the coordinate (0 based count).
     pub row: usize,
 
-    /// The column of the coordinate.
+    /// The column of the coordinate (0 based count).
     pub col: usize,
 }
 

@@ -5,7 +5,7 @@ use clap::{
     Parser,
     builder::{PossibleValuesParser, TypedValueParser},
 };
-use sudoku_gen::{Board, BoardKind, BoardSize, IrregularMap};
+use sudoku_gen::{Board, BoardSize, IrregularMap, RegionKind};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -82,7 +82,11 @@ fn main() -> Result<()> {
         }
         let result = board.validate(false);
         if !result.is_ok() {
-            eprintln!("The imported board is invalid: {result:#?}");
+            eprintln!(
+                "The imported board is invalid!\n\
+                Note: ValidationResults use zero-based indexing\n\
+                {result:#?}"
+            );
             return Err(anyhow!("The imported board is invalid."));
         }
         if !cli.export {
@@ -98,7 +102,11 @@ fn main() -> Result<()> {
         }
         let result = board.validate(false);
         if !result.is_ok() {
-            eprintln!("The imported board is invalid: {result:#?}");
+            eprintln!(
+                "The imported board is invalid!\n\
+                Note: ValidationResults use zero-based indexing\n\
+                {result:#?}"
+            );
             return Err(anyhow!("The imported board is invalid."));
         }
         if !cli.export {
@@ -108,27 +116,37 @@ fn main() -> Result<()> {
     } else {
         let size = BoardSize::from(cli.size);
         let max_cells = size.max_cells();
+        if !cli.export {
+            println!(
+                "Generating a {} Sudoku board of size {max_cells}x{max_cells}...",
+                if cli.irregular {
+                    "irregular"
+                } else {
+                    "regular"
+                }
+            );
+        }
         let kind = if cli.irregular {
-            if max_cells > 9 {
-                eprintln!("Preventing an infinite loop");
-                return Err(anyhow!(
-                    "Irregular regions are only supported for 4x4, 6x6, and 9x9 boards."
-                ));
-            }
-            BoardKind::Irregular {
-                map: IrregularMap::generate(&size)?,
-            }
+            // if max_cells > 9 {
+            //     eprintln!("Preventing an infinite loop");
+            //     return Err(anyhow!(
+            //         "Irregular regions are only supported for 4x4, 6x6, and 9x9 boards."
+            //     ));
+            // }
+            let map = IrregularMap::generate(&size)
+                .with_context(|| "Failed to generate an irregular region map")?;
+            RegionKind::Irregular { map }
         } else {
-            BoardKind::Regular
+            RegionKind::Regular
         };
         let mut board = Board::new(&size, kind);
-        if !cli.export {
-            println!("Generating a Sudoku board of size {max_cells}x{max_cells}...",);
-        }
         // short-circuit solving by seeding the first region
         board.seed();
         board
     };
+    if !cli.export {
+        println!("Solving the board...");
+    }
     if board.solve() {
         if cli.export {
             println!("{}", String::from(&board));

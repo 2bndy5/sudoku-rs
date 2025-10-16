@@ -1,6 +1,9 @@
 use std::collections::HashMap;
 
-use crate::{Board, Cell, Coord, cell::ValidatedCell};
+use crate::{
+    Board,
+    cell::{Cell, Coord, ValidatedCell},
+};
 
 /// Errors that can occur during board validation.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
@@ -139,7 +142,10 @@ impl Board {
 mod test {
     use std::str::FromStr;
 
-    use crate::{Board, Cell, Coord};
+    use crate::{
+        Board,
+        cell::{Cell, Coord},
+    };
 
     #[test]
     fn invalid_board() {

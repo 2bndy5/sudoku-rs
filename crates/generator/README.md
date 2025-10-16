@@ -147,13 +147,13 @@ There is (and will be) no support for overlapping regions.
 Given the complexity of this idea,
 overlapping regions is considered an undesirable feature.
 
-### `BoardKind::Regular`
+### `RegionKind::Regular`
 
 Regular regions take a rectangular shape.
 Depending on the size of the board (see above),
 regular regions are not always perfect squares.
 
-### `BoardKind::Irregular` ("JigSaw")
+### `RegionKind::Irregular` ("JigSaw")
 
 Irregular regions typically do not form the shape of a rectangle,
 rather they often resemble the shape of Tetris pieces.
@@ -165,10 +165,11 @@ explicitly mapped (`IrregularMap::new()`).
 In either case, the map is validated to ensure
 
 - all rows' and columns' length match the given `BoardSize`.
-- all regions mapped conform to the given `BoardSize`. Meaning
+- all mapped regions conform to the given `BoardSize`. Meaning
 
   - the region index does not exceed the `BoardSize`
-  - each region is contiguous
+  - each region is contiguous -- each cell of a region connects perpendicularly to
+    at least one other cell of the same region.
   - each region has the correct number of cells (based on `BoardSize`)
 
 ## Strategies
@@ -178,19 +179,18 @@ following techniques (in order of execution):
 
 - "naked singles": When only 1 candidate for a cell remains, set the cell to
   that candidate.
-- "hidden singles": When only 1 cell in a region can be a certain candidate
-  (hidden among other candidates for that cell), set the cell to that candidate.
-- "locked candidate 1": When a candidate is deduced to be in a single row or
+- "hidden singles": When only 1 cell in a region, row, or column can be a certain
+  candidate (hidden among other candidates for that cell), set the cell to that
+  candidate.
+- "pointed pair/triple/set": When a candidate is deduced to be in a single row or
   column of a region, then that candidate is removed from all other unsolved
   cells in the same row or column of other regions.
-
-The `Board::set_cell()` method keeps cells updated similar to
-how a human would keep notes on empty cells.
-This means that the following strategies are implicitly employed:
-
-- "naked/hidden pair/triple/etc": When a cell's candidates can only be
-  a certain set of values that are not already occupying
-  filled cells in the same row, column or region.
+- "hidden pair/triple/set": When a row or column has finite number of cells that
+  share the same candidates, then eliminate the candidates that are not shared among
+  the cells with shared candidates.
+- The `Board::set_cell()` method keeps cells updated similar to how a human would
+  keep notes on empty cells. This ensures that the candidates for each unfilled cell
+  are compliant with sudoku logic (before applying the strategies listed above).
 
 For a better explanation (with visual examples) of various strategies,
 please review the excellent [sudoku.coach] website. Note, that website

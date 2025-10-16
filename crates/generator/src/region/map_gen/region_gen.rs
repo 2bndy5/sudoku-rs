@@ -2,9 +2,12 @@ use std::{collections::HashMap, fmt::Display};
 
 use rand::{rngs::ThreadRng, seq::SliceRandom};
 
-use crate::{BoardSize, cell::Coord};
+use crate::{
+    BoardSize,
+    cell::{Cardinal, Coord},
+};
 
-use super::{IrregularMapError, cell_finder::CellFinder};
+use super::IrregularMapError;
 
 /// A struct to generate and validate an irregular region map.
 #[derive(Debug, Clone)]
@@ -52,11 +55,11 @@ impl RegionMap {
         let mut counts = vec![0; max_cells];
         for row in &self.regions {
             if row.len() != max_cells {
-                return Err(IrregularMapError::InvalidMap);
+                return Err(IrregularMapError::InvalidMapDimensions);
             }
             for col in row {
                 if *col >= max_cells as u8 {
-                    return Err(IrregularMapError::InvalidMap);
+                    return Err(IrregularMapError::InvalidRegionIndex);
                 }
                 counts[*col as usize] += 1;
             }
@@ -64,7 +67,7 @@ impl RegionMap {
         // verify counts (of cells per region) match max number of cells
         for count in counts {
             if count != max_cells {
-                return Err(IrregularMapError::InvalidMap);
+                return Err(IrregularMapError::UnbalancedRegion);
             }
         }
         for region in 0..max_cells {
@@ -127,7 +130,7 @@ impl RegionMap {
                 // found a cell in our desired region.
                 // look for adjacent cells in bordering regions
                 let cell = Coord { row, col };
-                for coord in CellFinder::get_neighbors(max_cells - 1, cell) {
+                for coord in Cardinal::get_neighbors(max_cells - 1, cell) {
                     if self.regions[coord.row][coord.col] != region {
                         let key = (region, self.regions[coord.row][coord.col]);
                         let proposed = (cell, coord);
@@ -176,7 +179,7 @@ impl RegionMap {
             // safe to `position().unwrap()` because we know `cell` is in `cells`
             let cell_index = cells.iter().position(|&c| c == cell).unwrap();
             visited[cell_index] = true;
-            for neighbor in CellFinder::get_neighbors(max_cells - 1, cell) {
+            for neighbor in Cardinal::get_neighbors(max_cells - 1, cell) {
                 if cells.contains(&neighbor) {
                     // safe to `position().unwrap()` because we know `neighbor` is in `cells`
                     let neighbor_index = cells.iter().position(|&c| c == neighbor).unwrap();
@@ -231,7 +234,7 @@ mod tests {
 
     fn generate(size: BoardSize) {
         let max_cells = size.max_cells();
-        let iterations = (max_cells as u32).pow(size.width() as u32).min(5000);
+        let iterations = (max_cells as u32).pow(3 as u32).min(1000);
         let mut map = RegionMap::new(&size);
         map.generate(iterations).unwrap();
         print!("{map}");
@@ -269,7 +272,7 @@ mod tests {
         let mut map = RegionMap::new(&BoardSize::X4);
         // manually create an invalid map with wrong number of rows
         map.regions = vec![vec![0, 0, 1], vec![0, 0, 1], vec![2, 2, 3]];
-        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMap));
+        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMapDimensions));
     }
 
     #[test]
@@ -282,7 +285,7 @@ mod tests {
             vec![2, 2, 3, 3],
             vec![2, 2, 3],
         ];
-        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMap));
+        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMapDimensions));
     }
 
     #[test]
@@ -295,7 +298,7 @@ mod tests {
             vec![2, 2, 3, 3],
             vec![2, 2, 3, 4],
         ];
-        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMap));
+        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidRegionIndex));
     }
 
     #[test]
@@ -308,7 +311,7 @@ mod tests {
             vec![2, 2, 3, 3],
             vec![2, 2, 2, 2],
         ];
-        assert_eq!(map.is_valid(), Err(IrregularMapError::InvalidMap));
+        assert_eq!(map.is_valid(), Err(IrregularMapError::UnbalancedRegion));
     }
 
     #[test]

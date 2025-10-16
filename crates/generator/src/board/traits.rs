@@ -1,7 +1,10 @@
 use std::{fmt::Display, str::FromStr};
 use thiserror::Error;
 
-use crate::{Board, BoardKind, BoardSize, Cell, Coord};
+use crate::{
+    Board, BoardSize, RegionKind,
+    cell::{Cell, Coord},
+};
 
 impl Display for Board {
     /// Display the board in a human-readable format.
@@ -22,7 +25,7 @@ impl Display for Board {
         let max_cells = self.size.max_cells();
         let zero_based_out = (max_cells <= 9) as u32;
         match self.kind {
-            BoardKind::Regular => {
+            RegionKind::Regular => {
                 let row_width = self.size.width();
                 let col_height = self.size.height();
                 for (i, row) in self.grid.iter().enumerate() {
@@ -42,11 +45,11 @@ impl Display for Board {
                         if (j as u8).is_multiple_of(row_width) && j != 0 {
                             write!(f, "║{suffix}")?;
                         }
-                        match cell {
+                        match *cell {
                             Cell::Value(v) => write!(
                                 f,
                                 "{} ",
-                                char::from_digit(*v as u32 + zero_based_out, 16)
+                                char::from_digit(v as u32 + zero_based_out, 16)
                                     .unwrap()
                                     .to_ascii_uppercase()
                             )?,
@@ -56,7 +59,7 @@ impl Display for Board {
                     writeln!(f)?;
                 }
             }
-            BoardKind::Irregular { map: _ } => {
+            RegionKind::Irregular { map: _ } => {
                 for (i, row) in self.grid.iter().enumerate() {
                     for (j, cell) in row.iter().enumerate() {
                         let grid_index = self
@@ -64,11 +67,11 @@ impl Display for Board {
                             .index(&self.size, Coord { row: i, col: j })
                             .map(|m| char::from_digit(m as u32 + zero_based_out, 16).unwrap())
                             .unwrap_or('?');
-                        match cell {
+                        match *cell {
                             Cell::Value(v) => write!(
                                 f,
                                 "{}┆{grid_index}",
-                                char::from_digit(*v as u32 + zero_based_out, 16)
+                                char::from_digit(v as u32 + zero_based_out, 16)
                                     .unwrap()
                                     .to_ascii_uppercase()
                             )?,
@@ -109,7 +112,7 @@ impl FromStr for Board {
     /// The [`BoardSize`] size is inferred from the length of
     /// the string after stripping all line endings.
     ///
-    /// Only [`BoardKind::Regular`] boards are supported by this method
+    /// Only [`RegionKind::Regular`] boards are supported by this method
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let src = s.replace(['\n', '\r'], "");
         let len = src.chars().count();
@@ -123,7 +126,7 @@ impl FromStr for Board {
         let size = BoardSize::from(root as u8);
         let zero_is_disallowed = size.max_cells() <= 9;
         let max_cells = size.max_cells() as usize;
-        let mut board = Board::new(&size, BoardKind::Regular);
+        let mut board = Board::new(&size, RegionKind::Regular);
         for (i, c) in src.char_indices() {
             let row = i / max_cells;
             let col = i % max_cells;
@@ -183,7 +186,7 @@ impl From<&Board> for String {
 impl Default for Board {
     /// Create a standard 9x9 board.
     fn default() -> Self {
-        Self::new(&BoardSize::X9, BoardKind::Regular)
+        Self::new(&BoardSize::X9, RegionKind::Regular)
     }
 }
 
@@ -191,12 +194,12 @@ impl Default for Board {
 mod test {
     use std::str::FromStr;
 
-    use crate::{Board, BoardKind, IrregularMap, ParseError};
+    use crate::{Board, IrregularMap, ParseError, RegionKind};
 
     #[test]
     fn print_irregular_board() {
         let input = "1034.2....3... 4";
-        let kind = BoardKind::Irregular {
+        let kind = RegionKind::Irregular {
             map: IrregularMap::new(vec![
                 vec![0, 0, 1, 1],
                 vec![0, 1, 1, 3],

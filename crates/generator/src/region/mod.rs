@@ -1,82 +1,13 @@
 mod map_gen;
 pub use map_gen::{IrregularMap, IrregularMapError};
-
-use crate::Coord;
-
-/// The size of the Sudoku board.
-#[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum BoardSize {
-    /// A 4x4 Sudoku board.
-    X4,
-
-    /// A 6x6 Sudoku board.
-    X6,
-
-    /// A 9x9 Sudoku board.
-    #[default]
-    X9,
-
-    /// A 12x12 Sudoku board.
-    X12,
-
-    /// A 16x16 Sudoku board.
-    X16,
-}
-
-impl From<u8> for BoardSize {
-    fn from(size: u8) -> Self {
-        match size {
-            4 => BoardSize::X4,
-            6 => BoardSize::X6,
-            12 => BoardSize::X12,
-            16 => BoardSize::X16,
-            _ => BoardSize::X9,
-        }
-    }
-}
-
-impl BoardSize {
-    /// Get the maximum number of cells in any row or column.
-    pub const fn max_cells(&self) -> u8 {
-        match self {
-            BoardSize::X4 => 4,
-            BoardSize::X6 => 6,
-            BoardSize::X9 => 9,
-            BoardSize::X12 => 12,
-            BoardSize::X16 => 16,
-        }
-    }
-
-    /// Get the width of each region in the board.
-    ///
-    /// This is only applicable to [`BoardKind::Regular`] boards.
-    pub const fn width(&self) -> u8 {
-        match self {
-            BoardSize::X4 => 2,
-            BoardSize::X6 => 3,
-            BoardSize::X9 => 3,
-            BoardSize::X12 => 4,
-            BoardSize::X16 => 4,
-        }
-    }
-
-    /// Get the height of each region in the board.
-    ///
-    /// This is only applicable to [`BoardKind::Regular`] boards.
-    pub const fn height(&self) -> u8 {
-        match self {
-            BoardSize::X4 => 2,
-            BoardSize::X6 => 2,
-            BoardSize::X9 => 3,
-            BoardSize::X12 => 3,
-            BoardSize::X16 => 4,
-        }
-    }
-}
+mod region_notes;
+pub use region_notes::{LockedCandidate, RegionNotes};
+mod finder;
+use crate::{BoardSize, cell::Coord};
 
 /// The type of grids used in the board.
 #[derive(Debug, Clone, PartialEq, Eq, Default)]
-pub enum BoardKind {
+pub enum RegionKind {
     /// A standard rectangular grid of regions.
     #[default]
     Regular,
@@ -93,7 +24,7 @@ pub enum BoardKind {
     },
 }
 
-impl BoardKind {
+impl RegionKind {
     /// Get the index of the region for the given `coord`.
     ///
     /// If the `coord` is out of bounds (per [`BoardSize::max_cells()`]),
@@ -102,12 +33,12 @@ impl BoardKind {
         let max_cells = size.max_cells() as usize;
         if coord.row < max_cells && coord.col < max_cells {
             match self {
-                BoardKind::Regular => {
+                RegionKind::Regular => {
                     let width = size.width();
                     let height = size.height();
                     Some(((coord.row as u8) / height * height) + ((coord.col as u8) / width))
                 }
-                BoardKind::Irregular { map } => {
+                RegionKind::Irregular { map } => {
                     // map is guaranteed to be the correct size per IrregularMap constructors
                     Some(map.regions[coord.row][coord.col])
                 }
@@ -180,17 +111,17 @@ impl BoardKind {
 
 #[cfg(test)]
 mod test {
-    use crate::{BoardKind, BoardSize, Coord, IrregularMap};
+    use crate::{BoardSize, IrregularMap, RegionKind, cell::Coord};
 
     #[test]
     fn grid_index_valid() {
         let size = BoardSize::X9;
-        let kind = BoardKind::Regular;
+        let kind = RegionKind::Regular;
         let index = kind.index(&size, Coord { row: 5, col: 7 });
         assert_eq!(index, Some(5));
 
         let size = BoardSize::X4;
-        let kind = BoardKind::Irregular {
+        let kind = RegionKind::Irregular {
             map: IrregularMap::new(vec![
                 vec![0, 0, 1, 1],
                 vec![0, 0, 1, 1],
@@ -206,14 +137,14 @@ mod test {
     #[test]
     fn grid_index_invalid() {
         let size = BoardSize::X9;
-        let kind = BoardKind::Regular;
+        let kind = RegionKind::Regular;
         let index = kind.index(&size, Coord { row: 9, col: 8 });
         assert_eq!(index, None);
         let index = kind.index(&size, Coord { row: 8, col: 9 });
         assert_eq!(index, None);
 
         let size = BoardSize::X4;
-        let kind = BoardKind::Irregular {
+        let kind = RegionKind::Irregular {
             map: IrregularMap::generate(&size).unwrap(),
         };
         let max_cells = size.max_cells() as usize;
@@ -238,7 +169,7 @@ mod test {
     #[test]
     fn grid_siblings() {
         let size = BoardSize::X9;
-        let kind = BoardKind::Regular;
+        let kind = RegionKind::Regular;
         let siblings = kind.siblings(&size, Coord { row: 5, col: 7 });
         assert_eq!(siblings.len(), 8);
         assert!(siblings.contains(&Coord { row: 5, col: 6 }));

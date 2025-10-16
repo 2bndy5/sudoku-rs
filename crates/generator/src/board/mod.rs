@@ -1,10 +1,19 @@
 mod traits;
-mod types;
-use crate::{Cell, Coord};
+use crate::region::RegionKind;
+use crate::{
+    BoardSize,
+    cell::{Cell, Coord},
+};
 pub use traits::ParseError;
-pub use types::{BoardKind, BoardSize, IrregularMap, IrregularMapError};
 
 /// A Sudoku board.
+///
+/// - Use [`Board::new()`] to create a new board of [`Cell::Notes`].
+/// - Use [`Board::default()`] to create a standard 9x9 board of [`Cell::Notes`].
+/// - Use [`Board::from_str()`](#impl-FromStr-for-Board) to import a board from a string.
+/// - Use [`String::from`](#impl-From%3C%26Board%3E-for-String) to export a board to a string.
+///
+/// See also [`Board::generate()`], [`Board::solve()`], and [`Board::validate()`].
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Board {
     /// The size of the board.
@@ -13,17 +22,16 @@ pub struct Board {
     pub size: BoardSize,
 
     /// The type describing the intended shape of the board's regions.
-    pub kind: BoardKind,
+    pub kind: RegionKind,
 
     /// The grid of cells.
     pub(crate) grid: Vec<Vec<Cell>>,
 }
 
 impl Board {
-    /// Create a board of empty cells spanning `size` in both height and width.
-    ///
-    /// If the given `size` is not a perfect square, then the value `9` is used instead.
-    pub fn new(size: &BoardSize, kind: BoardKind) -> Self {
+    /// Create a board of [`Cell::Notes`] spanning [`BoardSize::max_cells()`] in
+    /// both height and width.
+    pub fn new(size: &BoardSize, kind: RegionKind) -> Self {
         let max_cells = size.max_cells();
         let mut grid = Vec::new();
         for _ in 0..max_cells {
@@ -40,7 +48,7 @@ impl Board {
         }
     }
 
-    /// Get the [`Cell`] (by immutable reference) at the given [`Coord`].
+    /// Get the [`Cell`] (by immutable reference) at the given `coordinate`.
     ///
     /// Returns [`None`] if the given `coord` is out of bounds.
     pub fn get_cell(&self, coord: Coord) -> Option<&Cell> {
@@ -54,10 +62,8 @@ impl Board {
 
     /// Set the value of a cell at the given row and column.
     ///
-    /// The [`Coord`]'s `row` and `col` are zero-indexed.
     /// The `value` must be in range [`0`, [`BoardSize::max_cells()`]).
-    /// If the `value` or the [`Coord`]'s `row` or `col` are out of bounds,
-    /// then nothing is done.
+    /// If the `value` or the `coord` are out of bounds, then nothing is done.
     ///
     /// This also updates the [`Cell::Notes`] of the affected cells in the same
     /// row and column and siblings of the cell's region.
@@ -70,11 +76,11 @@ impl Board {
         }
     }
 
-    /// Same as [`Self::set_cell()`] but without checking for outdated notes in the
+    /// Same as [`Board::set_cell()`] but without checking for outdated notes in the
     /// region containing the cell specified by `coord`.
     ///
     /// Only useful for seeding a board with known valid values in 1 region.
-    /// Used internally by [`Self::seed()`].
+    /// Used internally by [`Board::seed()`].
     pub(super) fn set_cell_unchecked_grid(&mut self, coord: Coord, value: u8) {
         let max_cells = self.size.max_cells() as usize;
         if coord.row < max_cells && coord.col < max_cells && value < max_cells as u8 {
@@ -103,7 +109,7 @@ impl Board {
     /// If making a game with an "undo" feature, then it is recommended to
     /// save/restore the state of the board (via [`Board::clone()`]) instead of
     /// calling this method. This will not restore any invalid (player-made) notes
-    /// that were removed when [`Self::set_cell()`] was called.
+    /// that were removed when [`Board::set_cell()`] was called.
     pub fn clear_cell(&mut self, coord: Coord) {
         let max_cells = self.size.max_cells() as usize;
         if coord.row >= max_cells || coord.col >= max_cells {
@@ -169,11 +175,53 @@ impl Board {
             self.grid[coord.row][coord.col] = Cell::Notes(notes);
         }
     }
+
+    /// Set a note in the cell at the given coordinate.
+    ///
+    /// This function does nothing if
+    ///
+    /// - the specified cell is not a [`Cell::Notes`]
+    /// - the [`Cell::Notes`] already contains the given `note`
+    /// - the `coord` is out of bounds
+    /// - the `note` is out of bounds -- not in range [`0`, [`BoardSize::max_cells()`])
+    pub fn set_note(&mut self, coord: Coord, note: u8) {
+        let max_cells = self.size.max_cells() as usize;
+        if coord.row < max_cells
+            && coord.col < max_cells
+            && note < max_cells as u8
+            && let Cell::Notes(notes) = &mut self.grid[coord.row][coord.col]
+            && !notes.contains(&note)
+        {
+            notes.push(note);
+        }
+    }
+
+    /// Clear a note from the cell at the given coordinate.
+    ///
+    /// This function does nothing if
+    ///
+    /// - the specified cell is not a [`Cell::Notes`]
+    /// - the [`Cell::Notes`] does not contain the given `note`
+    /// - the `coord` is out of bounds
+    /// - the `note` is out of bounds -- not in range [`0`, [`BoardSize::max_cells()`])
+    pub fn clear_note(&mut self, coord: Coord, note: u8) {
+        let max_cells = self.size.max_cells() as usize;
+        if coord.row < max_cells
+            && coord.col < max_cells
+            && note < max_cells as u8
+            && let Cell::Notes(notes) = &mut self.grid[coord.row][coord.col]
+        {
+            notes.retain(|&n| n != note);
+        }
+    }
 }
 
 #[cfg(test)]
 mod test {
-    use crate::{Board, Cell, Coord};
+    use crate::{
+        Board,
+        cell::{Cell, Coord},
+    };
 
     #[test]
     fn set_cell() {
@@ -251,6 +299,24 @@ mod test {
                 assert!(notes.contains(&valid_values[row][col]));
             }
         }
+    }
+
+    #[test]
+    fn set_note() {
+        let mut board = Board::default();
+        let valid = board.size.max_cells() as usize - 1;
+        let coord = Coord {
+            row: valid,
+            col: valid,
+        };
+        // notes are auto-populated by Board::default()
+        // so first clear the notes in the cell.
+        board.clear_note(coord, valid as u8);
+        let notes = &board.grid[valid][valid].get_notes().unwrap();
+        assert!(!notes.contains(&(valid as u8)));
+        board.set_note(coord, valid as u8);
+        let notes = &board.grid[valid][valid].get_notes().unwrap();
+        assert!(notes.contains(&(valid as u8)));
     }
 
     #[test]
