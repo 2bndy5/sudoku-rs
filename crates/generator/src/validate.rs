@@ -140,7 +140,7 @@ impl Board {
 
 #[cfg(test)]
 mod test {
-    use std::str::FromStr;
+    use std::{collections::HashSet, str::FromStr};
 
     use crate::{
         Board,
@@ -169,11 +169,11 @@ mod test {
         // Set some duplicate values in the same region
         invalid_board.grid[1][1] = Cell::Value(faulty_value);
         // Set a cell in first region to empty
-        invalid_board.grid[2][2] = Cell::Notes(vec![]);
+        invalid_board.grid[2][2] = Cell::Notes(HashSet::new());
         // Set a cell in first row to empty
-        invalid_board.grid[0][2] = Cell::Notes(vec![]);
+        invalid_board.grid[0][2] = Cell::Notes(HashSet::new());
         // Set a cell in first col to empty
-        invalid_board.grid[2][0] = Cell::Notes(vec![]);
+        invalid_board.grid[2][0] = Cell::Notes(HashSet::new());
         // Set a cell in first col to a value out of regions' bounds
         invalid_board.grid[2][1] = Cell::Value(board.size.max_cells());
 

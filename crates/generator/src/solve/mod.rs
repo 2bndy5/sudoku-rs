@@ -31,7 +31,7 @@ impl Board {
         }
 
         if self.expose_hidden_sets() {
-            // don't guess yet, try again with the new notes
+            // don't guess yet, restart with the new notes
             return self.solve();
         }
 

@@ -1,4 +1,4 @@
-use std::fmt::Display;
+use std::{collections::HashSet, fmt::Display};
 mod finder;
 pub use finder::{Cardinal, CoordWalker};
 
@@ -17,7 +17,7 @@ pub enum Cell {
     /// The notes for an empty cell.
     ///
     /// These are the possible candidates that could go in the [`Cell::Value`].
-    Notes(Vec<u8>),
+    Notes(HashSet<u8>),
 }
 
 impl Cell {
@@ -50,7 +50,7 @@ impl Cell {
     }
 
     /// Transforms a [`Cell::Notes`] (by reference) into an [`Option`]
-    pub fn get_notes(&self) -> Option<&[u8]> {
+    pub fn get_notes(&self) -> Option<&HashSet<u8>> {
         match self {
             Cell::Notes(notes) => Some(notes),
             Cell::Value(_) => None,
@@ -102,6 +102,8 @@ impl Display for Coord {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use super::Cell;
     #[test]
     fn no_notes() {
@@ -112,7 +114,7 @@ mod test {
 
     #[test]
     fn is_none() {
-        let cell = Cell::Notes(vec![]);
+        let cell = Cell::Notes(HashSet::new());
         assert!(cell.get_value().is_none());
         assert!(cell.get_notes().is_some());
     }
@@ -126,7 +128,7 @@ mod test {
 
     #[test]
     fn is_notes() {
-        let cell = Cell::Notes(vec![1, 2, 3]);
+        let cell = Cell::Notes(HashSet::from_iter([1, 2, 3]));
         assert!(cell.is_notes());
         assert!(!cell.is_value());
     }

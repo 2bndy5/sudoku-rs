@@ -1,5 +1,7 @@
 #![allow(clippy::doc_lazy_continuation)]
 #![doc = include_str!("../README.md")]
+pub use rand;
+
 mod cell;
 pub use cell::{Cardinal, Cell, Coord, CoordWalker};
 

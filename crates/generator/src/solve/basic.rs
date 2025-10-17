@@ -22,7 +22,8 @@ impl Board {
                 if let Cell::Notes(notes) = &self.grid[row][col]
                     && notes.len() == 1
                 {
-                    return Some((Coord { row, col }, notes[0]));
+                    // safe to unwrap since we checked len() == 1
+                    return Some((Coord { row, col }, notes.iter().next().copied().unwrap()));
                 }
             }
         }

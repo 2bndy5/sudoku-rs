@@ -1,6 +1,6 @@
 use rand::seq::SliceRandom;
 
-use crate::{Board, cell::Coord};
+use crate::{Board, Coord};
 
 impl Board {
     /// Seed the board with some random valid values.

@@ -12,42 +12,43 @@ impl Board {
     /// that share the same row or column.
     ///
     /// Returns a map of region index to the list of coordinates that belong to that region.
+    /// If the given coordinate is out of bounds, then an empty map is returned.
     pub fn related_regions(&self, coord: Coord) -> BTreeMap<u8, Vec<Coord>> {
         let mut regions: BTreeMap<u8, Vec<Coord>> = BTreeMap::new();
         let max_cells = self.size.max_cells() as usize - 1;
-        if let Some(region) = self.kind.index(&self.size, coord) {
-            regions.insert(region, self.kind.members(&self.size, region));
-            let walkers = [
-                // walker for row
-                CoordWalker {
-                    origin: Coord {
-                        row: coord.row,
-                        col: 0,
-                    },
-                    direction: Cardinal::East,
-                    max_index: max_cells,
+        if coord.row > max_cells || coord.col > max_cells {
+            return regions;
+        }
+        let walkers = [
+            // walker for row
+            CoordWalker::new(
+                Coord {
+                    row: coord.row,
+                    col: 0,
                 },
-                // walker for column
-                CoordWalker {
-                    origin: Coord {
-                        row: 0,
-                        col: coord.col,
-                    },
-                    direction: Cardinal::South,
-                    max_index: max_cells,
+                Cardinal::East,
+                max_cells,
+            ),
+            // walker for column
+            CoordWalker::new(
+                Coord {
+                    row: 0,
+                    col: coord.col,
                 },
-            ];
-            for walker in walkers {
-                for c in walker {
-                    let reg = self.kind.index(&self.size, c);
-                    if reg.is_none_or(|r| r == region) {
-                        continue;
-                    }
-                    // safe to reg.unwrap() because of the is_none_or() check above
-                    regions
-                        .entry(reg.unwrap())
-                        .or_insert_with(|| self.kind.members(&self.size, reg.unwrap()));
+                Cardinal::South,
+                max_cells,
+            ),
+        ];
+        for walker in walkers {
+            for c in walker {
+                let reg = self.kind.index(&self.size, c);
+                if reg.is_none_or(|r| regions.contains_key(&r)) {
+                    continue;
                 }
+                // safe to reg.unwrap() because of the is_none_or() check above
+                regions
+                    .entry(reg.unwrap())
+                    .or_insert_with(|| self.kind.members(&self.size, reg.unwrap()));
             }
         }
         regions
@@ -56,15 +57,34 @@ impl Board {
 
 #[cfg(test)]
 mod test {
-    use crate::{Board, BoardSize, RegionKind, cell::Coord};
+    use crate::{Board, BoardSize, Coord, RegionKind};
 
     #[test]
     fn test_related_regions() {
         let board = Board::new(&BoardSize::X4, RegionKind::Regular);
-        let origin = Coord { row: 1, col: 1 };
+        let max_cells = board.size.max_cells() as usize;
+
+        // test row out of bounds
+        let invalid_coord = Coord {
+            row: max_cells,
+            ..Default::default()
+        };
+        let regions = board.related_regions(invalid_coord);
+        assert!(regions.is_empty());
+
+        // test column out of bounds
+        let invalid_coord = Coord {
+            col: max_cells,
+            ..Default::default()
+        };
+        let regions = board.related_regions(invalid_coord);
+        assert!(regions.is_empty());
+
+        // test valid coordinate
+        let origin = Coord::default(); // (0,0)
         let regions = board.related_regions(origin);
         assert_eq!(regions.len(), 3);
-        // expected regions for a 4x4 regular board are conveniently the first 3 regions
+        // expected regions (related to origin) for a 4x4 regular board are regions 0-2
         let expected = vec![
             board.kind.members(&board.size, 0),
             board.kind.members(&board.size, 1),

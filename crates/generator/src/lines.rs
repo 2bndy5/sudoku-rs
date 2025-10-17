@@ -34,18 +34,8 @@ impl LineKind {
                 Cardinal::South,
             ),
         };
-        let walker = CoordWalker {
-            origin,
-            direction,
-            max_index: board.size.max_cells() as usize - 1,
-        };
+        let walker = CoordWalker::new(origin, direction, board.size.max_cells() as usize - 1);
         let mut map = BTreeMap::new();
-        if let Cell::Notes(notes) = &board.grid[origin.row][origin.col] {
-            for note in notes {
-                let entry = map.entry(*note).or_insert(HashSet::new());
-                entry.insert(origin);
-            }
-        }
         for coord in walker {
             if let Cell::Notes(notes) = &board.grid[coord.row][coord.col] {
                 for note in notes {
@@ -70,55 +60,26 @@ impl LineKind {
         for (note, coords) in &notes_map {
             let visiting_coords_len = coords.len();
             if visiting_coords_len > 1 {
-                let mut shared_candidates = vec![*note];
+                // avoid duplicates by keeping the shared candidates sorted (via `HashSet::insert()`)
+                let mut shared_candidates: HashSet<u8> = HashSet::from_iter([*note]);
                 let visiting_coords: HashSet<Coord> = coords.iter().copied().collect();
                 for (other_note, other_coords) in &notes_map {
                     if other_note == note || other_coords.len() != visiting_coords_len {
                         continue;
                     }
-                    // visiting_coords vs other_coords may be out of order,
-                    // so use intersection and compare lengths
-                    let intersection = visiting_coords
-                        .intersection(other_coords)
-                        .collect::<HashSet<&Coord>>();
-                    if visiting_coords_len == intersection.len() {
+                    if *other_coords == visiting_coords {
                         // found some shared candidates
-                        shared_candidates.push(*other_note);
+                        shared_candidates.insert(*other_note);
                     }
                 }
                 // only keep if number of candidates matches the number of shared cells
                 if shared_candidates.len() == visiting_coords_len {
-                    // avoid duplicates by keeping the shared candidates (key) sorted
-                    shared_candidates.sort();
                     shared_notes
-                        .entry(shared_candidates)
+                        .entry(Vec::from_iter(shared_candidates))
                         .or_insert(visiting_coords);
                 }
             }
         }
-        // if !shared_notes.is_empty() {
-        //     println!("notes_map:");
-        //     for (note, coords) in notes_map {
-        //         println!(
-        //             "\t{note}: [{}]",
-        //             coords
-        //                 .iter()
-        //                 .map(|c| format!("{c}"))
-        //                 .collect::<Vec<String>>()
-        //                 .join(", ")
-        //         );
-        //     }
-        //     for (candidates, coords) in &shared_notes {
-        //         println!(
-        //             "shared_notes:\t{candidates:?}: [{}]",
-        //             coords
-        //                 .iter()
-        //                 .map(|c| format!("{c}"))
-        //                 .collect::<Vec<String>>()
-        //                 .join(", ")
-        //         );
-        //     }
-        // }
         shared_notes
     }
 }

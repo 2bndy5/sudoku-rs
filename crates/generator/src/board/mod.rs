@@ -1,4 +1,6 @@
 mod traits;
+use std::collections::HashSet;
+
 use crate::region::RegionKind;
 use crate::{
     BoardSize,
@@ -33,14 +35,10 @@ impl Board {
     /// both height and width.
     pub fn new(size: &BoardSize, kind: RegionKind) -> Self {
         let max_cells = size.max_cells();
-        let mut grid = Vec::new();
-        for _ in 0..max_cells {
-            let mut row = Vec::new();
-            for _ in 0..max_cells {
-                row.push(Cell::Notes(Vec::from_iter(0..max_cells)));
-            }
-            grid.push(row);
-        }
+        let grid = vec![
+            vec![Cell::Notes(HashSet::from_iter(0..max_cells)); max_cells as usize];
+            max_cells as usize
+        ];
         Board {
             size: size.clone(),
             kind,
@@ -118,7 +116,7 @@ impl Board {
         if let Cell::Value(value) = self.grid[coord.row][coord.col] {
             // If the cell is cleared, then repopulate the notes for
             // that cell and its related cells.
-            self.grid[coord.row][coord.col] = Cell::Notes(vec![value]);
+            self.grid[coord.row][coord.col] = Cell::Notes(HashSet::from_iter([value]));
             let mut not_possible = Vec::new();
 
             // accumulate filled values in the same region.
@@ -126,7 +124,7 @@ impl Board {
                 match &mut self.grid[sibling.row][sibling.col] {
                     Cell::Notes(notes) => {
                         if !notes.contains(&value) {
-                            notes.push(value);
+                            notes.insert(value);
                         }
                     }
                     Cell::Value(v) => {
@@ -142,7 +140,7 @@ impl Board {
                 match &mut self.grid[i][coord.col] {
                     Cell::Notes(notes) => {
                         if i != coord.row && !notes.contains(&value) {
-                            notes.push(value);
+                            notes.insert(value);
                         }
                     }
                     Cell::Value(v) => {
@@ -158,7 +156,7 @@ impl Board {
                 match cell {
                     Cell::Notes(notes) => {
                         if i != coord.col && !notes.contains(&value) {
-                            notes.push(value);
+                            notes.insert(value);
                         }
                     }
                     Cell::Value(v) => {
@@ -192,7 +190,7 @@ impl Board {
             && let Cell::Notes(notes) = &mut self.grid[coord.row][coord.col]
             && !notes.contains(&note)
         {
-            notes.push(note);
+            notes.insert(note);
         }
     }
 
@@ -218,6 +216,8 @@ impl Board {
 
 #[cfg(test)]
 mod test {
+    use std::collections::HashSet;
+
     use crate::{
         Board,
         cell::{Cell, Coord},
@@ -374,7 +374,7 @@ mod test {
         // notes are auto-populated by Board::default()
         assert_eq!(
             board.grid[valid][valid],
-            Cell::Notes(Vec::from_iter(0..board.size.max_cells()))
+            Cell::Notes(HashSet::from_iter(0..board.size.max_cells()))
         );
     }
 }

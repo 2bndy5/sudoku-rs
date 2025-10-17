@@ -79,25 +79,28 @@ impl Cardinal {
 /// An iterator that walks in a given direction from a starting coordinate.
 pub struct CoordWalker {
     /// The starting coordinate.
-    ///
-    /// This coordinate is not included in the iterations.
-    pub origin: Coord,
+    origin: Coord,
 
     /// The direction to walk.
-    pub direction: Cardinal,
+    direction: Cardinal,
 
     /// The maximum index for rows and columns.
-    ///
-    /// This is typically [`BoardSize::max_cells()`](crate::BoardSize::max_cells()) - 1.
-    pub max_index: usize,
+    max_index: usize,
+
+    /// Flag to indicate if the origin has been yielded.
+    started: bool,
 }
 
-impl Iterator for CoordWalker {
-    type Item = Coord;
-
-    /// Get the next coordinate in the [`CoordWalker::direction`].
+impl CoordWalker {
+    /// Create a new [`CoordWalker`].
     ///
-    /// # Example
+    /// ## Parameters
+    /// - `origin`: The starting coordinate.
+    /// - `direction`: The [`Cardinal`] direction to walk.
+    /// - `max_index`: The maximum index for any row or column.
+    ///    This is typically [`BoardSize::max_cells()`](crate::BoardSize::max_cells()) - 1.
+    ///
+    /// ## Example
     /// ```
     /// use sudoku_gen::{Coord, CoordWalker, Cardinal};
     /// let start = Coord { row: 4, col: 4 };
@@ -107,8 +110,35 @@ impl Iterator for CoordWalker {
     ///     direction: Cardinal::South,
     ///     max_index,
     /// };
+    /// ```
+    pub fn new(origin: Coord, direction: Cardinal, max_index: usize) -> Self {
+        Self {
+            origin,
+            direction,
+            max_index,
+            started: false,
+        }
+    }
+}
+
+impl Iterator for CoordWalker {
+    type Item = Coord;
+
+    /// Get the next coordinate in the specified [`Cardinal`] `direction`.
+    ///
+    /// # Example
+    /// ```
+    /// use sudoku_gen::{Coord, CoordWalker, Cardinal};
+    /// let origin = Coord { row: 4, col: 4 };
+    /// let max_index = 8; // for a standard 9x9 Sudoku board
+    /// let walker = CoordWalker::new(
+    ///     origin,
+    ///     Cardinal::South, // direction
+    ///     max_index,
+    /// );
     /// let path: Vec<Coord> = walker.collect();
     /// assert_eq!(path, vec![
+    ///     Coord { row: 4, col: 4 },
     ///     Coord { row: 5, col: 4 },
     ///     Coord { row: 6, col: 4 },
     ///     Coord { row: 7, col: 4 },
@@ -116,7 +146,10 @@ impl Iterator for CoordWalker {
     /// ]);
     /// ```
     fn next(&mut self) -> Option<Self::Item> {
-        if let Some(next_coord) = self.direction.next(self.origin, self.max_index) {
+        if !self.started {
+            self.started = true;
+            Some(self.origin)
+        } else if let Some(next_coord) = self.direction.next(self.origin, self.max_index) {
             self.origin = next_coord;
             Some(next_coord)
         } else {
