@@ -16,5 +16,6 @@ pub use lines::LineKind;
 
 mod generate;
 mod solve;
+pub use solve::{Difficulty, Strategy};
 mod validate;
 pub use validate::ValidationResults;

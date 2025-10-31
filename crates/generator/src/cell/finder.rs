@@ -98,7 +98,7 @@ impl CoordWalker {
     /// - `origin`: The starting coordinate.
     /// - `direction`: The [`Cardinal`] direction to walk.
     /// - `max_index`: The maximum index for any row or column.
-    ///    This is typically [`BoardSize::max_cells()`](crate::BoardSize::max_cells()) - 1.
+    ///   This is typically [`BoardSize::max_cells()`](crate::BoardSize::max_cells()) - 1.
     ///
     /// ## Example
     /// ```

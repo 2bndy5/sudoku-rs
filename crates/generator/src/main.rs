@@ -5,7 +5,7 @@ use clap::{
     Parser,
     builder::{PossibleValuesParser, TypedValueParser},
 };
-use sudoku_gen::{Board, BoardSize, IrregularMap, RegionKind};
+use sudoku_gen::{Board, BoardSize, Difficulty, IrregularMap, RegionKind};
 
 #[derive(Parser, Debug)]
 #[command(version, about)]
@@ -71,6 +71,12 @@ struct Cli {
     /// Empty cells are represented by any other character
     /// (including spaces and commas).
     from_str: Option<String>,
+
+    #[arg(short, long)]
+    /// Reduce a solution into a puzzle of the specified difficulty.
+    ///
+    /// Ignored when importing a puzzle from a file or string.
+    difficulty: Option<Difficulty>,
 }
 
 fn main() -> Result<()> {
@@ -157,6 +163,24 @@ fn main() -> Result<()> {
         if result.is_ok() {
             if !cli.export {
                 println!("The board is valid.");
+            }
+            if let Some(difficulty) = cli.difficulty {
+                if !cli.export {
+                    println!(
+                        "Reducing the board to a{} {difficulty:?} puzzle...",
+                        if matches!(difficulty, Difficulty::Easy | Difficulty::Expert) {
+                            "n"
+                        } else {
+                            ""
+                        }
+                    );
+                }
+                let puzzle = difficulty.make_puzzle(&board);
+                if cli.export {
+                    println!("{}", String::from(&puzzle));
+                } else {
+                    print!("Puzzle ({difficulty:?}):\n{puzzle}");
+                }
             }
         } else {
             eprintln!("{result:#?}");
