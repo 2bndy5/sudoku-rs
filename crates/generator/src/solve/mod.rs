@@ -88,7 +88,7 @@ impl Board {
         {
             for note in notes {
                 let mut new_board = Box::new(self.clone());
-                println!("guessing {note} for {coord}");
+                // println!("guessing {note} for {coord}");
                 new_board.set_cell(coord, *note);
                 if new_board.solve() {
                     *self = *new_board;
