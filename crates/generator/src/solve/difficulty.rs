@@ -1,3 +1,5 @@
+use std::str::FromStr;
+
 #[cfg(feature = "clap")]
 use clap::ValueEnum;
 use rand::seq::SliceRandom;
@@ -11,9 +13,10 @@ use crate::{
 ///
 /// These levels are used to determine which solving strategies
 /// must be applied to solve a puzzle.
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 #[cfg_attr(feature = "clap", derive(ValueEnum))]
 pub enum Difficulty {
+    #[default]
     Easy,
     Medium,
     Hard,
@@ -78,5 +81,28 @@ impl Difficulty {
             all_cells.len()
         );
         puzzle
+    }
+
+    pub fn as_str(&self) -> &str {
+        match self {
+            Difficulty::Easy => "Easy",
+            Difficulty::Medium => "Medium",
+            Difficulty::Hard => "Hard",
+            Difficulty::Expert => "Expert",
+        }
+    }
+}
+
+impl FromStr for Difficulty {
+    type Err = ();
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "easy" => Ok(Difficulty::Easy),
+            "medium" => Ok(Difficulty::Medium),
+            "hard" => Ok(Difficulty::Hard),
+            "expert" => Ok(Difficulty::Expert),
+            _ => Ok(Difficulty::Easy),
+        }
     }
 }

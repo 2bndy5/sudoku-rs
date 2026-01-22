@@ -18,10 +18,17 @@ def --wrapped run-cmd [...cmd: string] {
 }
 
 
-def --wrapped "nur bin cli" [
-    ...cmd: string # The command to run
+def --wrapped "nur cli" [
+    ...args: string # Arguments that get passed to the binary.
 ] {
-    run-cmd cargo run --bin sudoku-gen --features bin -- ...$cmd
+    run-cmd cargo run --bin sudoku-gen --features bin -- ...$args
+}
+
+
+def --wrapped "nur game" [
+    ...args: string # Arguments that get passed to the binary.
+] {
+    run-cmd cargo run -p sudoku-game -- ...$args
 }
 
 # Run the test suite and collect coverage data.
