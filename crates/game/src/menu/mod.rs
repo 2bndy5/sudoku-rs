@@ -91,7 +91,7 @@ impl ButtonTextBundle {
         Self {
             text: Text::new(label),
             font: TextFont {
-                font_size: 28.0,
+                font_size: FontSize::Px(28.0),
                 ..Default::default()
             },
             color: TextColor(Color::WHITE),

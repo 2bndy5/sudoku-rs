@@ -38,21 +38,21 @@ fn setup_splash(mut commands: Commands) {
             root.spawn((
                 Text::new("Sudoku"),
                 TextFont {
-                    font_size: 48.0,
+                    font_size: FontSize::Px(48.0),
                     ..Default::default()
                 },
             ));
             root.spawn((
                 Text::new("An open source project"),
                 TextFont {
-                    font_size: 32.0,
+                    font_size: FontSize::Px(32.0),
                     ..Default::default()
                 },
             ));
             root.spawn((
                 Text::new("written in Rust"),
                 TextFont {
-                    font_size: 32.0,
+                    font_size: FontSize::Px(32.0),
                     ..Default::default()
                 },
             ));

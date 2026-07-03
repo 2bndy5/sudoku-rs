@@ -83,7 +83,7 @@ fn setup_new_game_menu(mut commands: Commands) {
                 parent.spawn((
                     Text::new("Select Difficulty"),
                     TextFont {
-                        font_size: 40.0,
+                        font_size: FontSize::Px(40.0),
                         ..Default::default()
                     },
                     TextColor(Color::WHITE),

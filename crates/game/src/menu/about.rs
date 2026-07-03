@@ -36,7 +36,7 @@ fn setup_about_info(mut commands: Commands) {
             (
                 Text::new("About This Game"),
                 TextFont {
-                    font_size: 48.0,
+                    font_size: FontSize::Px(48.0),
                     ..Default::default()
                 },
                 TextColor(Color::WHITE),
@@ -48,7 +48,7 @@ fn setup_about_info(mut commands: Commands) {
                     "\nDeveloped by Brendan Doherty"
                 )),
                 TextFont {
-                    font_size: 32.0,
+                    font_size: FontSize::Px(32.0),
                     ..Default::default()
                 },
                 TextColor(Color::WHITE),

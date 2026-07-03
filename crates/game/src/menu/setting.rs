@@ -131,7 +131,7 @@ fn setup_settings_menu(mut commands: Commands) {
                     menu.spawn((
                         Text::new("Settings Menu"),
                         TextFont {
-                            font_size: 36.0,
+                            font_size: FontSize::Px(36.0),
                             ..Default::default()
                         },
                         TextColor(Color::WHITE),

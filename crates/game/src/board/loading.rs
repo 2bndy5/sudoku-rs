@@ -131,7 +131,7 @@ pub fn populate_grid(
                     cmds.with_child((
                         Text::new(number.to_string()),
                         TextFont {
-                            font_size: 40.0,
+                            font_size: FontSize::Px(40.0),
                             ..Default::default()
                         },
                         TextColor(Color::WHITE),
