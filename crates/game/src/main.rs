@@ -2,7 +2,7 @@ use bevy::prelude::*;
 mod menu;
 use menu::{AppState, MenuPlugins};
 mod board;
-use board::{CachePlugin, GameState, LoadingPlugin};
+use board::{CachePlugin, GameScenePlugin, GameState, LoadingPlugin};
 
 fn main() {
     App::new()
@@ -12,5 +12,6 @@ fn main() {
         .add_plugins(MenuPlugins)
         .add_plugins(CachePlugin)
         .add_plugins(LoadingPlugin)
+        .add_plugins(GameScenePlugin)
         .run();
 }

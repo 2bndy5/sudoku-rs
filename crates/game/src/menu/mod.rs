@@ -14,6 +14,7 @@ mod about;
 use about::AboutPlugin;
 mod new_game;
 use new_game::NewGamePlugin;
+pub use new_game::SelectedDifficulty;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum MenuState {

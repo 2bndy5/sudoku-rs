@@ -7,6 +7,10 @@ use super::{
 };
 use crate::board::GameState;
 
+/// Resource to store the currently selected difficulty for a new game.
+#[derive(Resource, Clone, Copy)]
+pub struct SelectedDifficulty(pub Difficulty);
+
 #[derive(Component)]
 pub struct DifficultySelector(DifficultyOptions);
 
@@ -112,15 +116,16 @@ fn back_button_listen(
 
 fn start_game(
     mut interaction_query: Query<(&Interaction, &DifficultySelector), Changed<Interaction>>,
+    mut commands: Commands,
     mut menu_state: ResMut<NextState<MenuState>>,
     mut game_state: ResMut<NextState<GameState>>,
     mut app_state: ResMut<NextState<AppState>>,
 ) {
     for (interaction, difficulty_selector) in &mut interaction_query {
         if matches!(*interaction, Interaction::Pressed) {
-            let _difficulty: Difficulty = difficulty_selector.0.into();
-            // Here you would typically set up the game with the selected difficulty
-            // and transition to the game state.
+            let difficulty: Difficulty = difficulty_selector.0.into();
+            // Store the selected difficulty so the loading system can generate the board
+            commands.insert_resource(SelectedDifficulty(difficulty));
             menu_state.set(MenuState::Hidden);
             app_state.set(AppState::Game);
             game_state.set(GameState::Loading);

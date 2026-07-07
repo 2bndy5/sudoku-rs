@@ -9,6 +9,8 @@ words:
   - hexdigit
   - nextest
   - rngs
+  - srgb
+  - Srgba
   - Tetris
   - thiserror
   - timeit

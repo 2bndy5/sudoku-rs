@@ -1,5 +1,9 @@
 use bevy::{ecs::relationship::RelatedSpawnerCommands, prelude::*};
 use sudoku_gen::rand::{rng, seq::SliceRandom};
+use sudoku_gen::{Board, BoardSize, RegionKind};
+
+use super::GameState;
+use crate::menu::SelectedDifficulty;
 
 #[derive(Component, Debug, PartialEq, Eq)]
 pub struct LoadingCell {
@@ -12,8 +16,6 @@ pub struct LoadingAnimationInterval(pub Timer);
 
 #[derive(Resource)]
 pub struct LoadingAnimationOrder(Vec<(u8, u8)>);
-
-use super::GameState;
 
 /// Generate a random sequence of (number, cell_index) pairs for the loading animation.
 fn generate_random_numbers() -> Vec<(u8, u8)> {
@@ -29,11 +31,46 @@ fn generate_random_numbers() -> Vec<(u8, u8)> {
         .collect()
 }
 
+/// Generate the board and cache it, then transition to Playing state.
+fn generate_board(
+    difficulty_res: Option<Res<SelectedDifficulty>>,
+    mut cache: ResMut<crate::board::cache::AppCache>,
+    mut game_state: ResMut<NextState<GameState>>,
+) {
+    let difficulty = difficulty_res.map(|d| d.0).unwrap_or_default();
+
+    // Generate a complete solved board
+    let mut solution = Board::new(&BoardSize::X9, RegionKind::Regular);
+    solution.generate();
+
+    // Create the puzzle with cells cleared based on difficulty
+    let puzzle = difficulty.make_puzzle(&solution);
+
+    // Cache the generated puzzle and solution
+    cache.unfinished_game = Some(crate::board::cache::CachedPuzzle {
+        puzzle,
+        solution,
+        elapsed_time: 0,
+        errors: 0,
+        difficulty,
+    });
+
+    // Transition to Playing state
+    game_state.set(GameState::Playing);
+}
+
 pub struct LoadingPlugin;
 impl Plugin for LoadingPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(LoadingAnimationOrder(generate_random_numbers()))
-            .add_systems(OnEnter(GameState::Loading), load_animation)
+            .insert_resource(LoadingAnimationInterval(Timer::from_seconds(
+                0.1,
+                TimerMode::Repeating,
+            )))
+            .add_systems(
+                OnEnter(GameState::Loading),
+                (load_animation, generate_board).chain(),
+            )
             .add_systems(Update, populate_grid.run_if(in_state(GameState::Loading)));
     }
 }
@@ -119,36 +156,41 @@ pub fn populate_grid(
     time: Res<Time>,
 ) {
     if timer.0.tick(time.delta()).just_finished() {
-        if let Some((number, index)) = animated_sequence.0.pop() {
-            let next_cell = LoadingCell {
-                x: index / 3,
-                y: index % 3,
-            };
+        match animated_sequence.0.pop() {
+            Some((number, index)) => {
+                let next_cell = LoadingCell {
+                    x: index / 3,
+                    y: index % 3,
+                };
 
-            for (entity, mut cell) in &mut cells {
-                if *cell.as_ref() == next_cell {
-                    let mut cmds = commands.entity(entity);
-                    cmds.with_child((
-                        Text::new(number.to_string()),
-                        TextFont {
-                            font_size: FontSize::Px(40.0),
-                            ..Default::default()
-                        },
-                        TextColor(Color::WHITE),
-                    ));
-                    cell.set_changed();
+                for (entity, mut cell) in &mut cells {
+                    if *cell.as_ref() == next_cell {
+                        let mut cmds = commands.entity(entity);
+                        cmds.with_child((
+                            Text::new(number.to_string()),
+                            TextFont {
+                                font_size: FontSize::Px(40.0),
+                                ..Default::default()
+                            },
+                            TextColor(Color::WHITE),
+                        ));
+                        cell.set_changed();
+                    }
                 }
             }
-        } else {
-            // If finished animating, then reset
-            for (entity, mut cell) in &mut cells {
-                // Clear cell text
-                let mut cmds = commands.entity(entity);
-                cmds.despawn_children();
-                cell.set_changed();
+            None => {
+                // If the sequence is exhausted, refresh it for the next animation cycle
+                if animated_sequence.0.is_empty() {
+                    for (entity, mut cell) in &mut cells {
+                        // Clear cell text
+                        let mut cmds = commands.entity(entity);
+                        cmds.despawn_children();
+                        cell.set_changed();
+                    }
+                    // Reset random number sequence for the next cycle
+                    animated_sequence.0 = generate_random_numbers();
+                }
             }
-            // Reset random number sequence (and corresponding indexes)
-            animated_sequence.0 = generate_random_numbers();
         }
     }
 }
